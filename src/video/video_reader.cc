@@ -455,6 +455,7 @@ NDArray VideoReader::NextFrameImpl() {
         ++curr_frame_;
         CacheFrame(frame);
     }
+    frame.ts =  (frame.pts - start_sec) * ts_factor;
     return frame;
 }
 
@@ -472,41 +473,44 @@ void VideoReader::IndexKeyframes() {
     bool eof = false;
     int64_t cnt = 0;
     frame_ts_.reserve(GetFrameCount());
-    timestamp_t start_sec = fmt_ctx_->streams[actv_stm_idx_]->start_time;
+    start_sec = fmt_ctx_->streams[actv_stm_idx_]->start_time;
     auto stm_ts = fmt_ctx_->streams[actv_stm_idx_]->time_base;
-    double ts_factor = stm_ts.den == 0 || stm_ts.num == 0 ? 0. : (double)stm_ts.num / (double)stm_ts.den;
+    ts_factor = stm_ts.den == 0 || stm_ts.num == 0 ? 0. : (double)stm_ts.num / (double)stm_ts.den;
 
-    while (!eof) {
-        ret = av_read_frame(fmt_ctx_.get(), packet.get());
-        if (ret < 0) {
-            if (ret == AVERROR_EOF) {
-                eof = true;
+    bool load_timestamps = false;
+    // This loop slows down init, especially when reading from network storage
+    if (load_timestamps) {
+        while (!eof) {
+            ret = av_read_frame(fmt_ctx_.get(), packet.get());
+            if (ret < 0) {
+                if (ret == AVERROR_EOF) {
+                    eof = true;
+                    break;
+                } else {
+                    LOG(FATAL) << "Error: av_read_frame failed with " << AVERROR(ret);
+                }
                 break;
-            } else {
-                LOG(FATAL) << "Error: av_read_frame failed with " << AVERROR(ret);
             }
-            break;
-        }
-        if (packet->stream_index == actv_stm_idx_) {
-            // store the pts info for each frame
-            auto start_pts = (packet->pts - start_sec) * ts_factor;
-            auto stop_pts = (packet->pts + packet->duration - start_sec) * ts_factor;
-            frame_ts_.emplace_back(AVFrameTime(packet->pts, packet->dts, start_pts, stop_pts));
-            // std::cout << ((packet->flags & AV_PKT_FLAG_KEY) ? "*" : "") << cnt << ": pts " << packet->pts << ", dts " << packet->dts << ", start pts " << start_pts << ", stop pts " << stop_pts << std::endl;
-            if (packet->flags & AV_PKT_FLAG_KEY) {
-                key_indices_.emplace_back(cnt);
+            if (packet->stream_index == actv_stm_idx_) {
+                // store the pts info for each frame
+                auto start_pts = (packet->pts - start_sec) * ts_factor;
+                auto stop_pts = (packet->pts + packet->duration - start_sec) * ts_factor;
+                frame_ts_.emplace_back(AVFrameTime(packet->pts, packet->dts, start_pts, stop_pts));
+                // std::cout << ((packet->flags & AV_PKT_FLAG_KEY) ? "*" : "") << cnt << ": pts " << packet->pts << ", dts " << packet->dts << ", start pts " << start_pts << ", stop pts " << stop_pts << std::endl;
+                if (packet->flags & AV_PKT_FLAG_KEY) {
+                    key_indices_.emplace_back(cnt);
+                }
+                ++cnt;
             }
-            ++cnt;
+            av_packet_unref(packet.get());
         }
-        av_packet_unref(packet.get());
-    }
-    std::sort(std::begin(frame_ts_), std::end(frame_ts_),
-            [](const AVFrameTime& a, const AVFrameTime& b) -> bool
-                {return a.pts < b.pts;});
+        std::sort(std::begin(frame_ts_), std::end(frame_ts_),
+                  [](const AVFrameTime &a, const AVFrameTime &b) -> bool { return a.pts < b.pts; });
 
-    for (size_t i = 0; i < frame_ts_.size(); ++i){
-        pts_frame_map_.insert(std::pair<int64_t, int64_t>(frame_ts_[i].pts, i));
-        // std::cout << i << ": pts " << frame_ts_[i].pts << ", dts " << frame_ts_[i].dts << ", start pts " << frame_ts_[i].start << ", stop pts " << frame_ts_[i].stop << std::endl;
+        for (size_t i = 0; i < frame_ts_.size(); ++i) {
+            pts_frame_map_.insert(std::pair<int64_t, int64_t>(frame_ts_[i].pts, i));
+            // std::cout << i << ": pts " << frame_ts_[i].pts << ", dts " << frame_ts_[i].dts << ", start pts " << frame_ts_[i].start << ", stop pts " << frame_ts_[i].stop << std::endl;
+        }
     }
     curr_frame_ = GetFrameCount();
     ret = Seek(0);

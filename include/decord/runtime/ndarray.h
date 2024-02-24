@@ -38,6 +38,8 @@ class NDArray {
  public:
   // pts of the frame
   int pts=-1;
+  // timestamp
+  float ts=-1;
   // internal container type
   struct Container;
   /*! \brief default constructor */
@@ -60,7 +62,7 @@ class NDArray {
    * \param other The value to be moved
    */
   NDArray(NDArray&& other) // NOLINT(*)
-      : pts(other.pts), data_(other.data_) {
+      : pts(other.pts), ts(other.ts), data_(other.data_) {
     other.data_ = nullptr;
   }
   /*! \brief destructor */
@@ -74,6 +76,7 @@ class NDArray {
   void swap(NDArray& other) {  // NOLINT(*)
     std::swap(data_, other.data_);
     std::swap(pts, other.pts);
+    std::swap(ts, other.ts);
   }
   /*!
    * \brief copy assignmemt
@@ -311,7 +314,7 @@ inline NDArray::NDArray(Container* data)
 }
 
 inline NDArray::NDArray(const NDArray& other)
-  : pts(other.pts), data_(other.data_) {
+  : pts(other.pts), ts(other.ts), data_(other.data_) {
   if (data_ != nullptr) {
     data_->IncRef();
   }

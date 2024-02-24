@@ -253,6 +253,7 @@ class DECORDArray(ctypes.Structure):
                 ("dtype", DECORDType),
                 ("shape", ctypes.POINTER(decord_shape_index_t)),
                 ("strides", ctypes.POINTER(decord_shape_index_t)),
-                ("byte_offset", ctypes.c_uint64)]
+                ("byte_offset", ctypes.c_uint64),
+                ("ts", ctypes.c_float)]
 
 DECORDArrayHandle = ctypes.POINTER(DECORDArray)

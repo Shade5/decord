@@ -150,6 +150,11 @@ class NDArrayBase(_NDArrayBase):
         return self.handle.contents.ctx
 
     @property
+    def ts(self):
+        """context of this array"""
+        return self.handle.contents.ts
+
+    @property
     def context(self):
         """context of this array"""
         return self.ctx
