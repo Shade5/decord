@@ -73,6 +73,8 @@ class VideoReader : public VideoReaderInterface {
         bool overrun_;
         /*! \brief a lookup table for per frame pts/dts */
         std::vector<AVFrameTime> frame_ts_;
+        timestamp_t start_sec;
+        double ts_factor;
         /*! \brief Video Streams Codecs in original videos */
         std::vector<const AVCodec*> codecs_;
         /*! \brief Currently active video stream index */
