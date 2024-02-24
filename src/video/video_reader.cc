@@ -455,6 +455,7 @@ NDArray VideoReader::NextFrameImpl() {
         ++curr_frame_;
         CacheFrame(frame);
     }
+    frame.ts =  (frame.pts - start_sec) * ts_factor;
     return frame;
 }
 

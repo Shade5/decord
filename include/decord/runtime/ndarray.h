@@ -38,6 +38,8 @@ class NDArray {
  public:
   // pts of the frame
   int pts=-1;
+  // timestamp
+  float ts=-1;
   // internal container type
   struct Container;
   /*! \brief default constructor */
