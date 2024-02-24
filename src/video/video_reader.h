@@ -48,7 +48,7 @@ class VideoReader : public VideoReaderInterface {
         bool Seek(int64_t pos);
         bool SeekAccurate(int64_t pos);
         NDArray GetKeyIndices();
-        NDArray GetFramePTS() const;
+        double GetFramePTS() const;
         double GetAverageFPS() const;
         double GetRotation() const;
     protected:
@@ -75,6 +75,7 @@ class VideoReader : public VideoReaderInterface {
         std::vector<AVFrameTime> frame_ts_;
         timestamp_t start_sec;
         double ts_factor;
+        double last_ts;
         /*! \brief Video Streams Codecs in original videos */
         std::vector<const AVCodec*> codecs_;
         /*! \brief Currently active video stream index */

@@ -132,7 +132,7 @@ class VideoReader(object):
             raise IndexError('Out of bound indices: {}'.format(indices[indices >= self._num_frame]))
         return indices
 
-    def get_frame_timestamp(self, idx):
+    def get_last_timestamp(self):
         """Get frame playback timestamp in unit(second).
 
         Parameters
@@ -145,13 +145,8 @@ class VideoReader(object):
         numpy.ndarray
             numpy.ndarray of shape (N, 2), where N is the size of indices. The format is `(start_second, end_second)`.
         """
-        assert self._handle is not None
-        if isinstance(idx, slice):
-            idx = self.get_batch(range(*idx.indices(len(self))))
-        idx = self._validate_indices(idx)
-        if self._frame_pts is None:
-            self._frame_pts = _CAPI_VideoReaderGetFramePTS(self._handle).asnumpy()
-        return self._frame_pts[idx, :]
+        ts = _CAPI_VideoReaderGetFramePTS(self._handle)
+        return ts
 
 
     def get_batch(self, indices):

@@ -455,7 +455,7 @@ NDArray VideoReader::NextFrameImpl() {
         ++curr_frame_;
         CacheFrame(frame);
     }
-    frame.ts =  (frame.pts - start_sec) * ts_factor;
+    last_ts =  (frame.pts - start_sec) * ts_factor;
     return frame;
 }
 
@@ -524,19 +524,8 @@ runtime::NDArray VideoReader::GetKeyIndices() {
     return ret;
 }
 
-runtime::NDArray VideoReader::GetFramePTS() const {
-    if (!fmt_ctx_) return NDArray();
-    // copy to ndarray
-    std::vector<float> tmp(frame_ts_.size() * 2, 0);
-    for (size_t i = 0; i < frame_ts_.size(); ++i) {
-        auto pos = i << 1;
-        tmp[pos] = frame_ts_[i].start;
-        tmp[pos + 1] = frame_ts_[i].stop;
-    }
-    std::vector<int64_t> shape = {static_cast<int64_t>(frame_ts_.size()), 2};
-    runtime::NDArray ret = runtime::NDArray::Empty(shape, kFloat32, kCPU);
-    ret.CopyFrom<float>(tmp, shape);
-    return ret;
+double VideoReader::GetFramePTS() const {
+    return static_cast<double>(last_ts);
 }
 
 double VideoReader::GetAverageFPS() const {
